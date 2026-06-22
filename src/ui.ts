@@ -1,4 +1,5 @@
 import { Checkbox } from "@cliffy/prompt";
+import { unicodeWidth } from "@std/cli/unicode-width";
 import { bold, cyan, dim, green, rgb24, yellow } from "@std/fmt/colors";
 import type { Repo, Since } from "./types.ts";
 
@@ -10,9 +11,19 @@ function consoleColumns(): number {
   }
 }
 
+/** Truncates `s` to a display width of at most `max` columns, adding "…" when cut. */
 function truncate(s: string, max: number): string {
   if (max <= 1) return "";
-  return s.length > max ? s.slice(0, max - 1) + "…" : s;
+  if (unicodeWidth(s) <= max) return s;
+  let width = 0;
+  let out = "";
+  for (const ch of s) {
+    const w = unicodeWidth(ch);
+    if (width + w > max - 1) break; // reserve 1 column for the "…"
+    width += w;
+    out += ch;
+  }
+  return out + "…";
 }
 
 const n = (x: number): string => x.toLocaleString("en-US");
@@ -48,8 +59,9 @@ export function formatRepoLine(
     yellow(starsPlain) +
     (repo.periodStars > 0 ? green(periodPlain) : "");
 
-  const headPlainLen =
-    `${rankPlain} ${namePlain}${langPlain}${starsPlain}${periodPlain}`.length;
+  const headPlainLen = unicodeWidth(
+    `${rankPlain} ${namePlain}${langPlain}${starsPlain}${periodPlain}`,
+  );
   const budget = maxWidth - headPlainLen - 2;
   if (repo.description && budget > 5) {
     return head + "  " + dim(truncate(repo.description, budget));

@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { unicodeWidth } from "@std/cli/unicode-width";
 import { parseTrending, trendingUrl } from "./scrape.ts";
 import { formatRepoLine } from "./ui.ts";
 
@@ -77,6 +78,34 @@ Deno.test("formatRepoLine includes the repo name", () => {
   assertEquals(plain.includes("octocat/Hello-World"), true);
   assertEquals(plain.includes("★ 1,234"), true);
   assertEquals(plain.includes("▲ 89 today"), true);
+});
+
+// A wide (CJK + emoji) description must be truncated by display width, not by
+// character count, so the rendered line never exceeds maxWidth and wraps.
+const WIDE_FIXTURE = `
+<div data-hpc>
+  <article class="Box-row">
+    <h2 class="h3 lh-condensed"><a href="/acme/widget">acme / widget</a></h2>
+    <p class="col-9 color-fg-muted my-1 pr-4">日本語の説明と絵文字🚀がいっぱい詰まった長い説明文です日本語の説明と絵文字</p>
+    <div class="f6 color-fg-muted mt-2">
+      <a href="/acme/widget/stargazers" class="Link Link--muted">1,234</a>
+      <a href="/acme/widget/forks" class="Link Link--muted">5</a>
+      <span class="d-inline-block float-sm-right">56 stars today</span>
+    </div>
+  </article>
+</div>
+`;
+
+Deno.test("formatRepoLine keeps wide-character lines within maxWidth", () => {
+  const repo = parseTrending(WIDE_FIXTURE)[0];
+  for (const maxWidth of [80, 60]) {
+    const width = unicodeWidth(stripAnsi(formatRepoLine(repo, { maxWidth })));
+    assertEquals(
+      width <= maxWidth,
+      true,
+      `width ${width} > maxWidth ${maxWidth}`,
+    );
+  }
 });
 
 Deno.test("formatRepoLine labels the trending window", () => {

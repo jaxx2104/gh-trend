@@ -17,6 +17,7 @@
   "imports": {
     "@cliffy/prompt": "jsr:@cliffy/prompt@^1.2.1",
     "@std/assert": "jsr:@std/assert@^1.0.19",
+    "@std/cli": "jsr:@std/cli@^1.0.0",
     "@std/fmt": "jsr:@std/fmt@^1.0.10",
     "cheerio": "npm:cheerio@^1.2.0"
   }

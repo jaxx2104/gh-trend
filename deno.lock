@@ -6,6 +6,7 @@
     "jsr:@cliffy/keycode@1.2.1": "1.2.1",
     "jsr:@cliffy/prompt@^1.2.1": "1.2.1",
     "jsr:@std/assert@^1.0.19": "1.0.19",
+    "jsr:@std/cli@1": "1.0.27",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "jsr:@std/fmt@^1.0.10": "1.0.10",
     "jsr:@std/internal@^1.0.12": "1.0.14",
@@ -48,6 +49,9 @@
       "dependencies": [
         "jsr:@std/internal@^1.0.12"
       ]
+    },
+    "@std/cli@1.0.27": {
+      "integrity": "eba97edd0891871a7410e835dd94b3c260c709cca5983df2689c25a71fbe04de"
     },
     "@std/encoding@1.0.10": {
       "integrity": "8783c6384a2d13abd5e9e87a7ae0520a30e9f56aeeaa3bdf910a3eaaf5c811a1"
@@ -217,6 +221,7 @@
     "dependencies": [
       "jsr:@cliffy/prompt@^1.2.1",
       "jsr:@std/assert@^1.0.19",
+      "jsr:@std/cli@1",
       "jsr:@std/fmt@^1.0.10",
       "npm:cheerio@^1.2.0"
     ]
