@@ -26,6 +26,9 @@ installed to use the extension.
 
 ```sh
 gh trend            # show today's trending repos
+gh trend --weekly   # this week's trending repos
+gh trend --monthly  # this month's trending repos
+gh trend --since weekly
 gh trend --help
 ```
 

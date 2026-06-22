@@ -2,7 +2,7 @@ import { bold, green, red } from "@std/fmt/colors";
 import { fetchTrendingHtml, parseTrending } from "./scrape.ts";
 import { renderList, selectRepos } from "./ui.ts";
 import { starRepo } from "./star.ts";
-import type { Repo } from "./types.ts";
+import type { Repo, Since } from "./types.ts";
 
 const HELP = `gh-trend — browse GitHub Trending and star repos
 
@@ -10,6 +10,9 @@ Usage:
   gh trend            Show today's trending repos; space to select, enter to star
 
 Options:
+  --since <period>    Trending window: daily (default), weekly, or monthly
+  --weekly            Shortcut for --since weekly
+  --monthly           Shortcut for --since monthly
   -h, --help          Show this help
 
 Notes:
@@ -17,16 +20,64 @@ Notes:
   Starring reuses your existing gh authentication via the REST API.
 `;
 
-async function main(): Promise<void> {
-  const args = Deno.args;
+export interface CliOptions {
+  help: boolean;
+  since: Since;
+}
+
+const SINCE_VALUES: readonly Since[] = ["daily", "weekly", "monthly"];
+
+function toSince(value: string | undefined): Since {
+  if (
+    value !== undefined && (SINCE_VALUES as readonly string[]).includes(value)
+  ) {
+    return value as Since;
+  }
+  throw new Error(
+    `Invalid --since value: ${
+      value ?? "(missing)"
+    } (expected daily, weekly, or monthly)`,
+  );
+}
+
+/** Parses CLI args. Throws on unknown options or an invalid --since value. */
+export function parseArgs(args: string[]): CliOptions {
   if (args.includes("-h") || args.includes("--help")) {
+    return { help: true, since: "daily" };
+  }
+  let since: Since = "daily";
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--daily" || arg === "--weekly" || arg === "--monthly") {
+      since = arg.slice(2) as Since;
+    } else if (arg === "--since") {
+      since = toSince(args[++i]);
+    } else if (arg.startsWith("--since=")) {
+      since = toSince(arg.slice("--since=".length));
+    } else {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+  }
+  return { help: false, since };
+}
+
+async function main(): Promise<void> {
+  let opts: CliOptions;
+  try {
+    opts = parseArgs(Deno.args);
+  } catch (e) {
+    console.error(red(e instanceof Error ? e.message : String(e)));
+    Deno.exit(2);
+  }
+
+  if (opts.help) {
     console.log(HELP);
     return;
   }
 
   let repos: Repo[];
   try {
-    repos = parseTrending(await fetchTrendingHtml());
+    repos = parseTrending(await fetchTrendingHtml(opts.since));
   } catch (e) {
     console.error(
       red(`Failed to fetch trending: ${e instanceof Error ? e.message : e}`),
@@ -41,13 +92,13 @@ async function main(): Promise<void> {
     Deno.exit(1);
   }
 
-  // Piped / non-interactive: just print the list and exit.
-  if (!Deno.stdin.isTerminal()) {
-    console.log(renderList(repos));
+  // Non-interactive (stdin or stdout is not a TTY): just print the list and exit.
+  if (!Deno.stdin.isTerminal() || !Deno.stdout.isTerminal()) {
+    console.log(renderList(repos, opts.since));
     return;
   }
 
-  const selected = await selectRepos(repos);
+  const selected = await selectRepos(repos, opts.since);
   if (selected.length === 0) {
     console.log("Nothing selected.");
     return;
@@ -67,4 +118,6 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
+if (import.meta.main) {
+  await main();
+}

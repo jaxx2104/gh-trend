@@ -1,6 +1,6 @@
 import { Checkbox } from "@cliffy/prompt";
 import { bold, cyan, dim, green, rgb24, yellow } from "@std/fmt/colors";
-import type { Repo } from "./types.ts";
+import type { Repo, Since } from "./types.ts";
 
 function consoleColumns(): number {
   try {
@@ -17,17 +17,26 @@ function truncate(s: string, max: number): string {
 
 const n = (x: number): string => x.toLocaleString("en-US");
 
+const PERIOD_LABEL: Record<Since, string> = {
+  daily: "today",
+  weekly: "this week",
+  monthly: "this month",
+};
+
 /** Renders one repo as a single, decorated line (safe to use as a cliffy option label). */
 export function formatRepoLine(
   repo: Repo,
-  maxWidth = consoleColumns(),
+  opts: { since?: Since; maxWidth?: number } = {},
 ): string {
+  const { since = "daily", maxWidth = consoleColumns() } = opts;
+  const periodLabel = PERIOD_LABEL[since];
+
   const rankPlain = `#${String(repo.rank).padStart(2, " ")}`;
   const namePlain = `${repo.owner}/${repo.name}`;
   const langPlain = repo.language ? ` ● ${repo.language}` : "";
   const starsPlain = ` ★ ${n(repo.stars)}`;
   const periodPlain = repo.periodStars > 0
-    ? ` ▲ ${n(repo.periodStars)} today`
+    ? ` ▲ ${n(repo.periodStars)} ${periodLabel}`
     : "";
 
   const dot = repo.languageColor
@@ -49,16 +58,22 @@ export function formatRepoLine(
 }
 
 /** Plain (non-interactive) listing, used when stdout is piped. */
-export function renderList(repos: Repo[]): string {
-  return repos.map((r) => formatRepoLine(r)).join("\n");
+export function renderList(repos: Repo[], since: Since = "daily"): string {
+  return repos.map((r) => formatRepoLine(r, { since })).join("\n");
 }
 
 /** Interactive multi-select. Returns the repos the user chose to star. */
-export async function selectRepos(repos: Repo[]): Promise<Repo[]> {
+export async function selectRepos(
+  repos: Repo[],
+  since: Since = "daily",
+): Promise<Repo[]> {
   const byName = new Map(repos.map((r) => [r.fullName, r]));
   const selected = await Checkbox.prompt({
     message: "Select repos to star (space to toggle, enter to confirm)",
-    options: repos.map((r) => ({ name: formatRepoLine(r), value: r.fullName })),
+    options: repos.map((r) => ({
+      name: formatRepoLine(r, { since }),
+      value: r.fullName,
+    })),
     minOptions: 0,
   });
   return selected

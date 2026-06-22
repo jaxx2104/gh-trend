@@ -64,12 +64,31 @@ Deno.test("parseTrending tolerates missing language/description", () => {
   assertEquals(second.rank, 2);
 });
 
-Deno.test("formatRepoLine includes the repo name", () => {
-  const line = formatRepoLine(parseTrending(FIXTURE)[0], 120);
-  // Strip ANSI to assert on visible text.
+// Strip ANSI so assertions run against the visible text.
+function stripAnsi(s: string): string {
   // deno-lint-ignore no-control-regex
-  const plain = line.replace(/\x1b\[[0-9;]*m/g, "");
+  return s.replace(/\x1b\[[0-9;]*m/g, "");
+}
+
+Deno.test("formatRepoLine includes the repo name", () => {
+  const plain = stripAnsi(
+    formatRepoLine(parseTrending(FIXTURE)[0], { maxWidth: 120 }),
+  );
   assertEquals(plain.includes("octocat/Hello-World"), true);
   assertEquals(plain.includes("★ 1,234"), true);
   assertEquals(plain.includes("▲ 89 today"), true);
+});
+
+Deno.test("formatRepoLine labels the trending window", () => {
+  const repo = parseTrending(FIXTURE)[0];
+  assertEquals(
+    stripAnsi(formatRepoLine(repo, { since: "weekly", maxWidth: 120 }))
+      .includes("▲ 89 this week"),
+    true,
+  );
+  assertEquals(
+    stripAnsi(formatRepoLine(repo, { since: "monthly", maxWidth: 120 }))
+      .includes("▲ 89 this month"),
+    true,
+  );
 });
