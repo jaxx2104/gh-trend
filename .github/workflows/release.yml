@@ -1,0 +1,38 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          build() {
+            deno compile \
+              --allow-net=github.com --allow-run=gh --allow-env \
+              --target "$1" -o "dist/$2" src/cli.ts
+          }
+          build x86_64-unknown-linux-gnu   gh-trend-linux-amd64
+          build aarch64-unknown-linux-gnu  gh-trend-linux-arm64
+          build x86_64-apple-darwin        gh-trend-darwin-amd64
+          build aarch64-apple-darwin       gh-trend-darwin-arm64
+          build x86_64-pc-windows-msvc     gh-trend-windows-amd64.exe
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" dist/* --generate-notes
