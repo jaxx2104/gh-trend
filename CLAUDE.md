@@ -20,8 +20,8 @@ file records only intent that isn't obvious from the code itself.
 
 GitHub Trending has no official API, so this scrapes HTML and a layout change
 breaks parsing. The CSS selectors live in `src/scrape.ts`; the expected shape is
-pinned by the fixture in `src/scrape_test.ts`. Update both together when GitHub's
-markup changes.
+pinned by the fixture in `src/scrape_test.ts`. Update both together when
+GitHub's markup changes.
 
 ## Constraints to preserve
 
@@ -30,7 +30,7 @@ markup changes.
   `script/build.sh`, `.github/workflows/release.yml`). Justify any addition.
 - **No token handling.** Starring shells out to `gh api` to reuse the user's
   existing `gh` auth — don't introduce direct token reads.
-- **Pipe-safe output.** `cli.ts` goes non-interactive when stdin *or* stdout is
+- **Pipe-safe output.** `cli.ts` goes non-interactive when stdin _or_ stdout is
   not a TTY. Keep both checks, or `gh trend | head` breaks.
 
 ## Before committing
