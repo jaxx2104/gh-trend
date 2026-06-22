@@ -38,3 +38,18 @@ GitHub's markup changes.
 Run `deno fmt`, `deno lint`, `deno task check`, `deno task test` — CI runs the
 same set. The compiled `./gh-trend` binary is a build artifact (gitignored);
 never commit it.
+
+## Releasing
+
+Releases are tag-driven: pushing a `v*` tag triggers
+`.github/workflows/release.yml`, which cross-compiles the five target binaries
+and creates the GitHub release with `--generate-notes`. There is no manual
+upload step — never run `gh release create` by hand, and never push a `v*` tag
+you don't intend to publish.
+
+- Tag versions follow semver: patch (`v0.1.1`) for bug fixes, minor for new
+  flags or behavior, major for breaking the `Repo` / CLI contract.
+- Cut a release only when a commit changes runtime behavior; docs-only or
+  CI-only changes don't warrant one.
+- After pushing the tag, confirm the workflow succeeded and the release has all
+  five assets (`gh release view <tag>`) before considering it done.
