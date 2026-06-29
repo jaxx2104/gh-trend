@@ -2,7 +2,17 @@ import { assertEquals, assertThrows } from "@std/assert";
 import { parseArgs } from "./cli.ts";
 
 Deno.test("parseArgs defaults to daily", () => {
-  assertEquals(parseArgs([]), { help: false, since: "daily" });
+  assertEquals(parseArgs([]), { help: false, since: "daily", json: false });
+});
+
+Deno.test("parseArgs --json", () => {
+  assertEquals(parseArgs(["--json"]).json, true);
+  assertEquals(parseArgs([]).json, false);
+  assertEquals(parseArgs(["--json", "--weekly"]), {
+    help: false,
+    since: "weekly",
+    json: true,
+  });
 });
 
 Deno.test("parseArgs --weekly / --monthly shortcuts", () => {

@@ -29,6 +29,7 @@ gh trend            # show today's trending repos
 gh trend --weekly   # this week's trending repos
 gh trend --monthly  # this month's trending repos
 gh trend --since weekly
+gh trend --json     # print repos as JSON (no starring)
 gh trend --help
 ```
 
@@ -39,6 +40,13 @@ gh trend --help
 
   ```sh
   gh trend | head
+  ```
+
+- `--json` prints the repos as a JSON array (the `Repo` shape) and exits without
+  starring, for scripting:
+
+  ```sh
+  gh trend --json | jq '.[].fullName'
   ```
 
 ## How it works
