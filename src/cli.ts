@@ -1,13 +1,15 @@
-import { bold, green, red } from "@std/fmt/colors";
+import { red } from "@std/fmt/colors";
 import { fetchTrendingHtml, parseTrending } from "./scrape.ts";
-import { renderList, selectRepos } from "./ui.ts";
+import { browseRepos, renderList } from "./ui.ts";
 import { starRepo } from "./star.ts";
+import { openRepo } from "./open.ts";
 import type { Repo, Since } from "./types.ts";
 
 const HELP = `gh-trend — browse GitHub Trending and star repos
 
 Usage:
-  gh trend            Show today's trending repos; space to select, enter to star
+  gh trend            Browse today's trending repos
+                      (↑↓/jk move · s star · o open in browser · q quit)
 
 Options:
   --since <period>    Trending window: daily (default), weekly, or monthly
@@ -108,24 +110,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const selected = await selectRepos(repos, opts.since);
-  if (selected.length === 0) {
-    console.log("Nothing selected.");
-    return;
-  }
-
-  for (const repo of selected) {
-    const result = await starRepo(repo);
-    if (result.ok) {
-      console.log(`${green("★")} Starred ${bold(repo.fullName)}`);
-    } else {
-      console.error(
-        `${red("✗")} Failed to star ${repo.fullName}: ${
-          result.error ?? "unknown error"
-        }`,
-      );
-    }
-  }
+  await browseRepos(repos, { star: starRepo, open: openRepo }, opts.since);
 }
 
 if (import.meta.main) {

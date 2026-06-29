@@ -2,15 +2,14 @@
 
 A [GitHub CLI](https://cli.github.com/) extension that shows
 [GitHub Trending](https://github.com/trending) right in your terminal and lets
-you star repositories on the spot.
+you star or open repositories on the spot.
 
 ```
 $ gh trend
-? Select repos to star (space to toggle, enter to confirm)
-❯ ◯ # 1 owner/repo ● TypeScript ★ 1,234 ▲ 89 today  A short description…
-  ◯ # 2 owner/repo ● Go         ★ 5,678 ▲ 42 today  Another description…
+↑↓/jk move · s star · o open · q quit
+❯ # 1 owner/repo ● TypeScript ★ 1,234 ▲ 89 today  A short description…
+  # 2 owner/repo ● Go         ★ 5,678 ▲ 42 today  Another description…  ★ starred
   ...
-★ Starred owner/repo
 ```
 
 ## Install
@@ -33,9 +32,10 @@ gh trend --json     # print repos as JSON (no starring)
 gh trend --help
 ```
 
-- Move with the arrow keys, **space** to toggle a repo, **enter** to confirm.
-- Every selected repo is starred via the GitHub REST API using your existing
-  `gh` authentication — no extra setup or token handling.
+- Move with **↑/↓** (or **j/k**). Press **s** to star the highlighted repo,
+  **o** to open it in your browser, **q** (or Esc) to quit.
+- Starring uses the GitHub REST API and opening uses `gh repo view --web`, both
+  through your existing `gh` authentication — no extra setup or token handling.
 - Piping the output (non-interactive) prints the list instead of prompting:
 
   ```sh
@@ -53,7 +53,7 @@ gh trend --help
 
 GitHub Trending has no official API, so the extension scrapes
 `https://github.com/trending`. Starring uses `PUT /user/starred/{owner}/{repo}`
-through `gh api`.
+through `gh api`, and opening a repo shells out to `gh repo view --web`.
 
 Because it relies on scraping, a GitHub layout change can break parsing; the
 selectors live in [`src/scrape.ts`](src/scrape.ts) and are easy to update.
