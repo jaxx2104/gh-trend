@@ -13,8 +13,9 @@ file records only intent that isn't obvious from the code itself.
   (`parseTrending`, pure). Keep `parseTrending` side-effect free so it remains
   unit-testable against fixtures.
 - `src/ui.ts` is rendering only (formatting + the cliffy prompt). `src/star.ts`
-  is the one side effect that mutates GitHub state. `src/cli.ts` wires them
-  together and owns argument parsing (`parseArgs` is exported and tested).
+  is the one side effect that mutates GitHub state (`src/open.ts` also shells
+  out to `gh`, but only to open a browser). `src/cli.ts` wires them together
+  and owns argument parsing (`parseArgs` is exported and tested).
 
 ## Scraping is fragile by design
 
@@ -25,9 +26,12 @@ GitHub's markup changes.
 
 ## Constraints to preserve
 
-- **Least privilege.** Runtime permissions are exactly
-  `--allow-net=github.com --allow-run=gh --allow-env` (see `deno.json`,
-  `script/build.sh`, `.github/workflows/release.yml`). Justify any addition.
+- **Least privilege.** Bun has no runtime permission sandbox (the Deno build
+  used `--allow-net=github.com --allow-run=gh --allow-env`), so this is now a
+  code-level rule: the only network access is `fetch` to `github.com` in
+  `src/scrape.ts`, and the only subprocess is `gh` (`src/star.ts`,
+  `src/open.ts`); the only env var read is `NO_COLOR` in `src/cli.ts`. Justify
+  any new host, executable, or env var read.
 - **No token handling.** Starring shells out to `gh api` to reuse the user's
   existing `gh` auth — don't introduce direct token reads.
 - **Pipe-safe output.** `cli.ts` goes non-interactive when stdin _or_ stdout is
@@ -35,17 +39,19 @@ GitHub's markup changes.
 
 ## Before committing
 
-Run `deno fmt`, `deno lint`, `deno task check`, `deno task test` — CI runs the
-same set. The compiled `./gh-trend` binary is a build artifact (gitignored);
-never commit it.
+Run `bunx biome check --write .`, `bun run check`, `bun run test` — CI runs
+the same set (`biome ci`, `tsc --noEmit`, `bun test`). Biome does not format
+Markdown, so keep `*.md` wrapped at 80 columns by hand. The compiled
+`./gh-trend` binary is a build artifact (gitignored); never commit it.
 
 ## Releasing
 
 Releases are tag-driven: pushing a `v*` tag triggers
 `.github/workflows/release.yml`, which cross-compiles the five target binaries
-and creates the GitHub release with `--generate-notes`. There is no manual
-upload step — never run `gh release create` by hand, and never push a `v*` tag
-you don't intend to publish.
+with `bun build --compile` and creates the GitHub release with
+`--generate-notes`. There is no manual upload step — never run
+`gh release create` by hand, and never push a `v*` tag you don't intend to
+publish.
 
 - Tag versions follow semver: patch (`v0.1.1`) for bug fixes, minor for new
   flags or behavior, major for breaking the `Repo` / CLI contract.

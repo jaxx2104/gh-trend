@@ -1,9 +1,9 @@
-import { red } from "@std/fmt/colors";
-import { fetchTrendingHtml, parseTrending } from "./scrape.ts";
-import { browseRepos, renderList } from "./ui.ts";
-import { starRepo } from "./star.ts";
+import { red, setColorEnabled } from "@std/fmt/colors";
 import { openRepo } from "./open.ts";
+import { fetchTrendingHtml, parseTrending } from "./scrape.ts";
+import { starRepo } from "./star.ts";
 import type { Repo, Since } from "./types.ts";
+import { browseRepos, renderList } from "./ui.ts";
 
 const HELP = `gh-trend — browse GitHub Trending and star repos
 
@@ -33,7 +33,8 @@ const SINCE_VALUES: readonly Since[] = ["daily", "weekly", "monthly"];
 
 function toSince(value: string | undefined): Since {
   if (
-    value !== undefined && (SINCE_VALUES as readonly string[]).includes(value)
+    value !== undefined &&
+    (SINCE_VALUES as readonly string[]).includes(value)
   ) {
     return value as Since;
   }
@@ -69,12 +70,16 @@ export function parseArgs(args: string[]): CliOptions {
 }
 
 async function main(): Promise<void> {
+  // @std/fmt/colors only honors NO_COLOR via Deno.noColor, which Bun lacks.
+  // https://no-color.org: disable color when NO_COLOR is set and non-empty.
+  setColorEnabled(!process.env.NO_COLOR);
+
   let opts: CliOptions;
   try {
-    opts = parseArgs(Deno.args);
+    opts = parseArgs(process.argv.slice(2));
   } catch (e) {
     console.error(red(e instanceof Error ? e.message : String(e)));
-    Deno.exit(2);
+    process.exit(2);
   }
 
   if (opts.help) {
@@ -89,14 +94,14 @@ async function main(): Promise<void> {
     console.error(
       red(`Failed to fetch trending: ${e instanceof Error ? e.message : e}`),
     );
-    Deno.exit(1);
+    process.exit(1);
   }
 
   if (repos.length === 0) {
     console.error(
       red("No trending repositories found (the page layout may have changed)."),
     );
-    Deno.exit(1);
+    process.exit(1);
   }
 
   if (opts.json) {
@@ -105,7 +110,7 @@ async function main(): Promise<void> {
   }
 
   // Non-interactive (stdin or stdout is not a TTY): just print the list and exit.
-  if (!Deno.stdin.isTerminal() || !Deno.stdout.isTerminal()) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
     console.log(renderList(repos, opts.since));
     return;
   }

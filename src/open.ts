@@ -8,19 +8,22 @@ export interface OpenResult {
 
 /**
  * Opens a repo's GitHub page in the browser via `gh`, reusing gh's own opener
- * (and the user's existing auth) so no extra run permissions are needed.
+ * (and the user's existing auth) so we never spawn anything but `gh`.
  * Command: gh repo view {owner}/{repo} --web.
  */
 export async function openRepo(repo: Repo): Promise<OpenResult> {
-  const cmd = new Deno.Command("gh", {
-    args: ["repo", "view", repo.fullName, "--web"],
-    stdout: "null",
-    stderr: "piped",
-  });
   try {
-    const { success, stderr } = await cmd.output();
-    if (success) return { repo, ok: true };
-    return { repo, ok: false, error: new TextDecoder().decode(stderr).trim() };
+    // Bun.spawn throws synchronously when `gh` is not on PATH, so keep it in the try.
+    const proc = Bun.spawn(["gh", "repo", "view", repo.fullName, "--web"], {
+      stdout: "ignore",
+      stderr: "pipe",
+    });
+    const [exitCode, stderr] = await Promise.all([
+      proc.exited,
+      new Response(proc.stderr).text(),
+    ]);
+    if (exitCode === 0) return { repo, ok: true };
+    return { repo, ok: false, error: stderr.trim() };
   } catch (e) {
     return {
       repo,

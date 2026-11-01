@@ -11,21 +11,28 @@ export interface StarResult {
  * Endpoint: PUT /user/starred/{owner}/{repo} (204 on success).
  */
 export async function starRepo(repo: Repo): Promise<StarResult> {
-  const cmd = new Deno.Command("gh", {
-    args: [
-      "api",
-      "--method",
-      "PUT",
-      `user/starred/${repo.fullName}`,
-      "--silent",
-    ],
-    stdout: "null",
-    stderr: "piped",
-  });
   try {
-    const { success, stderr } = await cmd.output();
-    if (success) return { repo, ok: true };
-    return { repo, ok: false, error: new TextDecoder().decode(stderr).trim() };
+    // Bun.spawn throws synchronously when `gh` is not on PATH, so keep it in the try.
+    const proc = Bun.spawn(
+      [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        `user/starred/${repo.fullName}`,
+        "--silent",
+      ],
+      {
+        stdout: "ignore",
+        stderr: "pipe",
+      },
+    );
+    const [exitCode, stderr] = await Promise.all([
+      proc.exited,
+      new Response(proc.stderr).text(),
+    ]);
+    if (exitCode === 0) return { repo, ok: true };
+    return { repo, ok: false, error: stderr.trim() };
   } catch (e) {
     return {
       repo,

@@ -1,3 +1,4 @@
+import { writeSync } from "node:fs";
 import { keypress } from "@cliffy/keypress";
 import { unicodeWidth } from "@std/cli/unicode-width";
 import {
@@ -13,19 +14,11 @@ import {
 import type { Repo, Since } from "./types.ts";
 
 function consoleColumns(): number {
-  try {
-    return Deno.consoleSize().columns;
-  } catch {
-    return 80;
-  }
+  return process.stdout.columns || 80;
 }
 
 function consoleRows(): number {
-  try {
-    return Deno.consoleSize().rows;
-  } catch {
-    return 24;
-  }
+  return process.stdout.rows || 24;
 }
 
 /** Truncates `s` to a display width of at most `max` columns, adding "…" when cut. */
@@ -40,7 +33,7 @@ function truncate(s: string, max: number): string {
     width += w;
     out += ch;
   }
-  return out + "…";
+  return `${out}…`;
 }
 
 const n = (x: number): string => x.toLocaleString("en-US");
@@ -63,15 +56,17 @@ export function formatRepoLine(
   const namePlain = `${repo.owner}/${repo.name}`;
   const langPlain = repo.language ? ` ● ${repo.language}` : "";
   const starsPlain = ` ★ ${n(repo.stars)}`;
-  const periodPlain = repo.periodStars > 0
-    ? ` ▲ ${n(repo.periodStars)} ${periodLabel}`
-    : "";
+  const periodPlain =
+    repo.periodStars > 0 ? ` ▲ ${n(repo.periodStars)} ${periodLabel}` : "";
 
   const dot = repo.languageColor
     ? rgb24("●", parseInt(repo.languageColor.slice(1), 16))
     : "●";
-  const head = dim(rankPlain) + " " +
-    dim(`${repo.owner}/`) + bold(cyan(repo.name)) +
+  const head =
+    dim(rankPlain) +
+    " " +
+    dim(`${repo.owner}/`) +
+    bold(cyan(repo.name)) +
     (repo.language ? ` ${dot} ${repo.language}` : "") +
     yellow(starsPlain) +
     (repo.periodStars > 0 ? green(periodPlain) : "");
@@ -81,7 +76,7 @@ export function formatRepoLine(
   );
   const budget = maxWidth - headPlainLen - 2;
   if (repo.description && budget > 5) {
-    return head + "  " + dim(truncate(repo.description, budget));
+    return `${head}  ${dim(truncate(repo.description, budget))}`;
   }
   return head;
 }
@@ -123,10 +118,8 @@ function statusSuffix(s: RepoStatus): { plain: string; colored: string } {
 }
 
 const HINT = "↑↓/jk move · s star · o open · q quit";
-const encoder = new TextEncoder();
-
 function write(s: string): void {
-  Deno.stdout.writeSync(encoder.encode(s));
+  writeSync(process.stdout.fd, s);
 }
 
 /**
@@ -160,11 +153,11 @@ export async function browseRepos(
         maxWidth: cols - 2 - statusW,
       });
       const prefix = i === cursor ? cyan(bold("❯ ")) : "  ";
-      lines.push(prefix + body + (plain ? " " + colored : ""));
+      lines.push(prefix + body + (plain ? ` ${colored}` : ""));
     }
 
     let out = prevLines > 0 ? `\x1b[${prevLines}A` : "";
-    out += "\r\x1b[0J" + lines.map((l) => l + "\n").join("");
+    out += `\r\x1b[0J${lines.map((l) => `${l}\n`).join("")}`;
     write(out);
     prevLines = lines.length;
   };
@@ -177,10 +170,15 @@ export async function browseRepos(
     statuses[cursor] = { kind };
     render();
     const res = await run(repos[cursor]);
-    statuses[cursor] = res.ok ? { kind: done } : {
-      kind: "error",
-      msg: truncate((res.error ?? `${done} failed`).split("\n")[0].trim(), 40),
-    };
+    statuses[cursor] = res.ok
+      ? { kind: done }
+      : {
+          kind: "error",
+          msg: truncate(
+            (res.error ?? `${done} failed`).split("\n")[0].trim(),
+            40,
+          ),
+        };
     render();
   };
 

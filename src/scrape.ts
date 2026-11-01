@@ -14,7 +14,7 @@ export async function fetchTrendingHtml(
   const res = await fetch(trendingUrl(since), {
     headers: {
       "User-Agent": "gh-trend",
-      "Accept": "text/html",
+      Accept: "text/html",
     },
   });
   if (!res.ok) {
@@ -43,12 +43,12 @@ export function parseTrending(html: string): Repo[] {
 
     const description = $el.find("p").first().text().trim();
 
-    const language = $el.find('[itemprop="programmingLanguage"]').first().text()
-      .trim() || null;
+    const language =
+      $el.find('[itemprop="programmingLanguage"]').first().text().trim() ||
+      null;
 
     const colorStyle =
-      $el.find("span.repo-language-color").first().attr("style") ??
-        "";
+      $el.find("span.repo-language-color").first().attr("style") ?? "";
     const colorMatch = colorStyle.match(
       /background-color:\s*(#[0-9a-fA-F]{3,8})/,
     );

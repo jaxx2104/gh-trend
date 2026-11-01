@@ -18,7 +18,7 @@ $ gh trend
 gh extension install jaxx2104/gh-trend
 ```
 
-Precompiled binaries are attached to each release, so you do **not** need Deno
+Precompiled binaries are attached to each release, so you do **not** need Bun
 installed to use the extension.
 
 ## Usage
@@ -60,19 +60,23 @@ selectors live in [`src/scrape.ts`](src/scrape.ts) and are easy to update.
 
 ## Development
 
-Built with [Deno](https://deno.com/).
+Built with [Bun](https://bun.sh/). The Bun version is managed with
+[mise](https://mise.jdx.dev/) (`mise.toml`, pinned by `mise.lock`).
 
 ```sh
-deno task dev      # run against live trending data
-deno task test     # run unit tests
-deno task check    # type-check
-deno task compile  # build the local ./gh-trend binary
+mise install       # install the pinned Bun
+bun install        # install dependencies
+bun run dev        # run against live trending data
+bun run test       # run unit tests (bun:test)
+bun run check      # type-check (tsc --noEmit)
+bun run lint       # Biome format + lint check (fix: bunx biome check --write .)
+bun run compile    # build the local ./gh-trend binary
 ```
 
 To try it as an installed extension:
 
 ```sh
-deno task compile
+bun run compile
 gh extension install .
 gh trend
 gh extension remove trend
