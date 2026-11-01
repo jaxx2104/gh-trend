@@ -11,11 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
+      # Installs the Bun version pinned in mise.lock (mise.toml says "latest").
+      - uses: jdx/mise-action@v3
+        env:
+          MISE_LOCKFILE: "true"
 
-      - run: deno fmt --check
-      - run: deno lint
-      - run: deno task check
-      - run: deno task test
+      - run: bun install --frozen-lockfile
+      - run: bunx biome ci .
+      - run: bun run check
+      - run: bun run test

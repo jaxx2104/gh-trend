@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { expect, test } from "bun:test";
 import { unicodeWidth } from "@std/cli/unicode-width";
 import { parseTrending, trendingUrl } from "./scrape.ts";
 import { formatRepoLine } from "./ui.ts";
@@ -29,55 +29,54 @@ const FIXTURE = `
 </div>
 `;
 
-Deno.test("trendingUrl builds the daily URL by default", () => {
-  assertEquals(trendingUrl(), "https://github.com/trending?since=daily");
-  assertEquals(
-    trendingUrl("weekly"),
+test("trendingUrl builds the daily URL by default", () => {
+  expect(trendingUrl()).toEqual("https://github.com/trending?since=daily");
+  expect(trendingUrl("weekly")).toEqual(
     "https://github.com/trending?since=weekly",
   );
 });
 
-Deno.test("parseTrending extracts repo fields", () => {
+test("parseTrending extracts repo fields", () => {
   const repos = parseTrending(FIXTURE);
-  assertEquals(repos.length, 2);
+  expect(repos.length).toEqual(2);
 
   const first = repos[0];
-  assertEquals(first.rank, 1);
-  assertEquals(first.owner, "octocat");
-  assertEquals(first.name, "Hello-World");
-  assertEquals(first.fullName, "octocat/Hello-World");
-  assertEquals(first.url, "https://github.com/octocat/Hello-World");
-  assertEquals(first.description, "My first repository on GitHub!");
-  assertEquals(first.language, "TypeScript");
-  assertEquals(first.languageColor, "#3178c6");
-  assertEquals(first.stars, 1234);
-  assertEquals(first.forks, 567);
-  assertEquals(first.periodStars, 89);
+  expect(first.rank).toEqual(1);
+  expect(first.owner).toEqual("octocat");
+  expect(first.name).toEqual("Hello-World");
+  expect(first.fullName).toEqual("octocat/Hello-World");
+  expect(first.url).toEqual("https://github.com/octocat/Hello-World");
+  expect(first.description).toEqual("My first repository on GitHub!");
+  expect(first.language).toEqual("TypeScript");
+  expect(first.languageColor).toEqual("#3178c6");
+  expect(first.stars).toEqual(1234);
+  expect(first.forks).toEqual(567);
+  expect(first.periodStars).toEqual(89);
 });
 
-Deno.test("parseTrending tolerates missing language/description", () => {
+test("parseTrending tolerates missing language/description", () => {
   const second = parseTrending(FIXTURE)[1];
-  assertEquals(second.fullName, "torvalds/linux");
-  assertEquals(second.language, null);
-  assertEquals(second.languageColor, null);
-  assertEquals(second.description, "");
-  assertEquals(second.stars, 190000);
-  assertEquals(second.rank, 2);
+  expect(second.fullName).toEqual("torvalds/linux");
+  expect(second.language).toEqual(null);
+  expect(second.languageColor).toEqual(null);
+  expect(second.description).toEqual("");
+  expect(second.stars).toEqual(190000);
+  expect(second.rank).toEqual(2);
 });
 
 // Strip ANSI so assertions run against the visible text.
 function stripAnsi(s: string): string {
-  // deno-lint-ignore no-control-regex
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching ANSI escapes is the point
   return s.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
-Deno.test("formatRepoLine includes the repo name", () => {
+test("formatRepoLine includes the repo name", () => {
   const plain = stripAnsi(
     formatRepoLine(parseTrending(FIXTURE)[0], { maxWidth: 120 }),
   );
-  assertEquals(plain.includes("octocat/Hello-World"), true);
-  assertEquals(plain.includes("★ 1,234"), true);
-  assertEquals(plain.includes("▲ 89 today"), true);
+  expect(plain.includes("octocat/Hello-World")).toEqual(true);
+  expect(plain.includes("★ 1,234")).toEqual(true);
+  expect(plain.includes("▲ 89 today")).toEqual(true);
 });
 
 // A wide (CJK + emoji) description must be truncated by display width, not by
@@ -96,28 +95,24 @@ const WIDE_FIXTURE = `
 </div>
 `;
 
-Deno.test("formatRepoLine keeps wide-character lines within maxWidth", () => {
+test("formatRepoLine keeps wide-character lines within maxWidth", () => {
   const repo = parseTrending(WIDE_FIXTURE)[0];
   for (const maxWidth of [80, 60]) {
     const width = unicodeWidth(stripAnsi(formatRepoLine(repo, { maxWidth })));
-    assertEquals(
-      width <= maxWidth,
-      true,
-      `width ${width} > maxWidth ${maxWidth}`,
-    );
+    expect(width).toBeLessThanOrEqual(maxWidth);
   }
 });
 
-Deno.test("formatRepoLine labels the trending window", () => {
+test("formatRepoLine labels the trending window", () => {
   const repo = parseTrending(FIXTURE)[0];
-  assertEquals(
-    stripAnsi(formatRepoLine(repo, { since: "weekly", maxWidth: 120 }))
-      .includes("▲ 89 this week"),
-    true,
-  );
-  assertEquals(
-    stripAnsi(formatRepoLine(repo, { since: "monthly", maxWidth: 120 }))
-      .includes("▲ 89 this month"),
-    true,
-  );
+  expect(
+    stripAnsi(
+      formatRepoLine(repo, { since: "weekly", maxWidth: 120 }),
+    ).includes("▲ 89 this week"),
+  ).toEqual(true);
+  expect(
+    stripAnsi(
+      formatRepoLine(repo, { since: "monthly", maxWidth: 120 }),
+    ).includes("▲ 89 this month"),
+  ).toEqual(true);
 });
